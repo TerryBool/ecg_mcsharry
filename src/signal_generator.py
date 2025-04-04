@@ -62,6 +62,8 @@ def generate_ecg(
     theta: NDArray | None = None,
     a: NDArray | None = None,
     b: NDArray | None = None,
+    scale_low: float = -0.4,
+    scale_high: float = 1.2
 ):
     if theta is None:
         theta = np.array([-1.0 / 3.0, -1.0 / 12.0, 0, 1.0 / 12.0, 1.0 / 2.0]) * np.pi
@@ -81,4 +83,14 @@ def generate_ecg(
     rrs = _rrprocess(hrmean=heart_beat, n=t_eval.shape[0])
 
     result = solve_ivp(_ecg_model, [0, t_max], [1.0, 0.0, 0.04], method="RK45", t_eval=t_eval, args=(theta, a, b, A, f_resp, fs, rrs))
-    return result
+
+    # Scaling the signal
+    signal = result.y[2].copy()
+    smin = signal.min()
+    smax = signal.max()
+    srange = smax - smin
+    rrange = scale_high - scale_low
+    rsignal = scale_low + ((signal - smin)*rrange) / srange
+    print(t_eval.shape)
+    print(rsignal.shape)
+    return t_eval, rsignal

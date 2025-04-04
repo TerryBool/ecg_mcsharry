@@ -19,6 +19,14 @@ class Record:
         self.noisy_signal = noisy_signal
         self.sampling_frequency = sampling_frequency
         self.duration = duration
+    
+    def get_segment(self, start_secs: float, duration_secs: float):
+        duration_secs = min(duration_secs, self.duration - start_secs)
+        start = int(start_secs * self.sampling_frequency)
+        end = int(start + duration_secs * self.sampling_frequency)
+        times = np.linspace(start_secs, start_secs + duration_secs, end - start)
+        sample = self.clean_signal[start:end]
+        return times, sample
 
 class RecordBuilder:
     @staticmethod
