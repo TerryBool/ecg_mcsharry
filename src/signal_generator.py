@@ -91,6 +91,4 @@ def generate_ecg(
     srange = smax - smin
     rrange = scale_high - scale_low
     rsignal = scale_low + ((signal - smin)*rrange) / srange
-    print(t_eval.shape)
-    print(rsignal.shape)
     return t_eval, rsignal
