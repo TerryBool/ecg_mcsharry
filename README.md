@@ -12,8 +12,6 @@ Formát zápisu podle složek, i.e. Person_PID -> rec_RID, P-PID-RID
 - P-2-7
 - P-2-20
 - P-3-5
-- P-2-20
-- P-3-5
 - P-8-2
 - P-9-6
 - P-10-1

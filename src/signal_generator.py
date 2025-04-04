@@ -63,7 +63,9 @@ def generate_ecg(
     a: NDArray | None = None,
     b: NDArray | None = None,
     scale_low: float = -0.4,
-    scale_high: float = 1.2
+    scale_high: float = 1.2,
+    scale_mean: float = 0.0010,
+    scale_std: float = 0.1164,
 ):
     if theta is None:
         theta = np.array([-1.0 / 3.0, -1.0 / 12.0, 0, 1.0 / 12.0, 1.0 / 2.0]) * np.pi
@@ -86,9 +88,14 @@ def generate_ecg(
 
     # Scaling the signal
     signal = result.y[2].copy()
-    smin = signal.min()
-    smax = signal.max()
-    srange = smax - smin
-    rrange = scale_high - scale_low
-    rsignal = scale_low + ((signal - smin)*rrange) / srange
+    # smin = signal.min()
+    # smax = signal.max()
+    # srange = smax - smin
+    # rrange = scale_high - scale_low
+    # rsignal = scale_low + ((signal - smin)*rrange) / srange
+
+    smean = np.mean(signal)
+    sstd = np.std(signal)
+    rsignal = ((signal - smean) / sstd) * scale_std + scale_mean
+
     return t_eval, rsignal
