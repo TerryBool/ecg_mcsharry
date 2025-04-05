@@ -58,6 +58,7 @@ def generate_ecg(
     fs: float = 360.0,
     t_max: float = 60.0,
     heart_beat: float = 60.0,
+    heart_beat_mode: str = "variable",
     f_resp: float = 0.25,
     theta: NDArray | None = None,
     a: NDArray | None = None,
@@ -82,20 +83,26 @@ def generate_ecg(
 
     t_eval = np.linspace(0, t_max, int(t_max * fs))
 
-    rrs = _rrprocess(hrmean=heart_beat, n=t_eval.shape[0])
+    rrs = None
+    if heart_beat_mode == "variable":
+        rrs = _rrprocess(hrmean=heart_beat, n=t_eval.shape[0])
+    elif heart_beat_mode == "constant":
+        rrs = np.ones(t_eval.shape[0]) * (60.0 / heart_beat)
+    else:
+        raise ValueError("Unsupported hear beat mode")
 
     result = solve_ivp(_ecg_model, [0, t_max], [1.0, 0.0, 0.04], method="RK45", t_eval=t_eval, args=(theta, a, b, A, f_resp, fs, rrs))
 
     # Scaling the signal
     signal = result.y[2].copy()
-    # smin = signal.min()
-    # smax = signal.max()
-    # srange = smax - smin
-    # rrange = scale_high - scale_low
-    # rsignal = scale_low + ((signal - smin)*rrange) / srange
+    smin = signal.min()
+    smax = signal.max()
+    srange = smax - smin
+    rrange = scale_high - scale_low
+    rsignal = scale_low + ((signal - smin)*rrange) / srange
 
-    smean = np.mean(signal)
-    sstd = np.std(signal)
-    rsignal = ((signal - smean) / sstd) * scale_std + scale_mean
+    # smean = np.mean(signal)
+    # sstd = np.std(signal)
+    # rsignal = ((signal - smean) / sstd) * scale_std + scale_mean
 
     return t_eval, rsignal
