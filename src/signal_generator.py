@@ -3,22 +3,49 @@ from scipy.integrate import solve_ivp
 from numpy.typing import NDArray
 
 
-def _ecg_model(t, Z, theta, a, b, A, f2, fs, rrs):
+def _ecg_model(t, Z, theta, a, b, A, f2, fs, rrs, disease=None):
     x, y, z = Z
-
-    alpha = 1.0 - np.sqrt(x * x + y * y)
-
-    i_theta = np.arctan2(y, x)
-    d_theta = (i_theta - theta) - np.round((i_theta - theta) / 2 / np.pi) * 2 * np.pi
     # d_theta = (i_theta - theta) % (2*np.pi)
 
     hr = rrs[min(len(rrs) - 1, int(np.floor(t * fs)))]
-
     omega = 2 * np.pi / hr
     z0 = A * np.sin(2 * np.pi * f2 * t)
+    
+    # alpha = 1.0 - np.sqrt(x * x + y * y)
+    # dx = alpha * x - omega * y
+    # dy = alpha * y + omega * x
 
-    dx = alpha * x - omega * y
-    dy = alpha * y + omega * x
+    if disease is None:
+        k1, k2 = 1, 1
+        phi = 0.0
+    elif disease == "A_Fib":
+        k1 = 0.3
+        k2 = 0.1
+        phi = np.pi/8.0
+
+    scaling_matrix = np.array([
+        [k1, 0], 
+        [0, k2]
+    ])
+
+    rotation_matrix = np.array([
+        [np.cos(phi), np.sin(phi)], 
+        [-np.sin(phi), np.cos(phi)]
+    ])
+    # x_hat, y_hat = np.dot(rotation_matrix, np.dot(scaling_matrix, np.array([x, y])))
+    x_hat, y_hat = rotation_matrix @ (scaling_matrix @ np.array([x, y]))
+    print(f"x_hat: {x_hat}, y_hat: {y_hat}")
+    # x_hat = k1*x*np.cos(phi) + k2*y*np.sin(phi)
+    # y_hat = - k1*x*np.sin(phi) + k2*y*np.cos(phi)
+
+    i_theta = np.arctan2(y_hat, x_hat)
+    d_theta = (i_theta - theta) - np.round((i_theta - theta) / 2 / np.pi) * 2 * np.pi
+
+    alpha = 1.0 - np.sqrt(x_hat ** 2 + y_hat ** 2)
+    print("alpha", alpha)
+    dx = alpha * x_hat - omega * y_hat
+    dy = alpha * y_hat + omega * x_hat
+
     dz = -np.sum(a * d_theta * np.exp(-0.5 * (d_theta / b) ** 2)) - (z - z0)
 
     return [dx, dy, dz]
@@ -67,6 +94,7 @@ def generate_ecg(
     scale_high: float = 1.2,
     scale_mean: float = 0.0010,
     scale_std: float = 0.1164,
+    disease: str = None,
 ):
     if theta is None:
         theta = np.array([-1.0 / 3.0, -1.0 / 12.0, 0, 1.0 / 12.0, 1.0 / 2.0]) * np.pi
@@ -91,7 +119,7 @@ def generate_ecg(
     else:
         raise ValueError("Unsupported hear beat mode")
 
-    result = solve_ivp(_ecg_model, [0, t_max], [1.0, 0.0, 0.04], method="RK45", t_eval=t_eval, args=(theta, a, b, A, f_resp, fs, rrs))
+    result = solve_ivp(_ecg_model, [0, t_max], [1.0, 0.0, 0.04], method="RK45", t_eval=t_eval, args=(theta, a, b, A, f_resp, fs, rrs, disease))
 
     # Scaling the signal
     signal = result.y[2].copy()
@@ -105,4 +133,30 @@ def generate_ecg(
     # sstd = np.std(signal)
     # rsignal = ((signal - smean) / sstd) * scale_std + scale_mean
 
-    return t_eval, rsignal
+    return t_eval, rsignal, result
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    fs = 360.0
+    t_max = 15.0
+    heart_beat = 60.0
+
+    t, signal, result = generate_ecg(fs, t_max, heart_beat, disease=None)
+    #t, signal, result = generate_ecg(fs, t_max, heart_beat, disease="A_Fib", heart_beat_mode="constant")
+
+    plt.figure(figsize=(6, 6))
+    plt.plot(result.y[0][5000:], result.y[1][5000:])
+    plt.title("Phase Plane Plot")
+    plt.xlabel("X")
+    plt.ylabel("Y")
+    plt.grid()
+    plt.show()
+
+    plt.figure(figsize=(16, 6))
+    plt.plot(t[-2000:], signal[-2000:])
+    plt.title("Generated ECG Signal")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Amplitude")
+    plt.grid()
+    plt.show()
