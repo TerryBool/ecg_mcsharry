@@ -149,7 +149,7 @@ if __name__ == "__main__":
     plt.grid()
     plt.show()
     
-    theta, a, b, w = ParameterFactory.ventricular_extrasystole()
+    theta, a, b, w = ParameterFactory.flutter()
 
     t, signal, result = generate_ecg(
         fs,
