@@ -1,5 +1,6 @@
 import numpy as np
 import scipy as sp
+import matplotlib.pyplot as plt
 from typing import Tuple
 from numpy.typing import NDArray
 from parameter_generator import AbstractParameterGenerator, NormalParamGen
@@ -12,7 +13,7 @@ class ECGGenerator:
         t_range: Tuple[float, float] = (0.0, 60.0),
         param_gen: AbstractParameterGenerator | None = None,
         # Scaling needs to be reconsidered
-    ):
+    ) -> Tuple[NDArray, NDArray]:
         if param_gen is None:
             state = np.array([1.0, 0.0, 0.4])
             param_gen = NormalParamGen(state)
@@ -21,10 +22,28 @@ class ECGGenerator:
         tlen = te - ts
         dt = tlen / fs
 
+        result = np.array([param_gen.last_state])
+        t = ts
+        while t < te:
+            ti, pulse = ECGGenerator.generate_pulse(t, dt, result[-1, :], param_gen)
+            result = np.vstack([result, pulse])
+            t = ti
+        times = np.linspace(ts, t, result.shape[0])
+        return times, result
+
     # Should be returning time and state (x, y, z)
     @staticmethod
-    def generate_pulse(t: float, xs: NDArray, param_gen: AbstractParameterGenerator) -> Tuple[float, NDArray]:
-        pass
+    def generate_pulse(t: float, dt: float, xs: NDArray, param_gen: AbstractParameterGenerator) -> Tuple[float, NDArray]:
+        result = []
+        state = RK4.step(ECGGenerator._ecg_model, t, xs, dt, param_gen)
+        result.append(state)
+        nt = t + dt
+        while not param_gen._is_new_cycle(state):
+            state = RK4.step(ECGGenerator._ecg_model, nt, state, dt, param_gen)
+            result.append(state)
+            nt += dt
+        return nt, np.array(result)
+
 
     @staticmethod
     def generate_signal_scipy():
@@ -89,3 +108,9 @@ class RK4:
             result[i] = y[i] + (scalers @ ks) * dt
 
         return result
+
+
+if __name__ == "__main__":
+    times, signal = ECGGenerator.generate_signal_custom()
+    plt.plot(times, signal[3, :])
+    plt.show()
