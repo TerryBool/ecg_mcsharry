@@ -1,15 +1,15 @@
 import numpy as np
-import scipy as sp
+from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 from typing import Tuple
 from numpy.typing import NDArray
-from parameter_generator import AbstractParameterGenerator, NormalParamGen
+from parameter_generator import AbstractParameterGenerator, NormalParamGen, VentricularExtrasystoleParamGen
 
 
 class ECGGenerator:
     @staticmethod
     def generate_signal_custom(
-        fs: float = 500.0,
+        fs: float = 360.0,
         t_range: Tuple[float, float] = (0.0, 60.0),
         param_gen: AbstractParameterGenerator | None = None,
         # Scaling needs to be reconsidered
@@ -19,8 +19,7 @@ class ECGGenerator:
             param_gen = NormalParamGen(state)
         
         ts, te = t_range
-        tlen = te - ts
-        dt = tlen / fs
+        dt = 1.0 / fs
 
         result = np.array([param_gen.last_state])
         t = ts
@@ -42,12 +41,35 @@ class ECGGenerator:
             state = RK4.step(ECGGenerator._ecg_model, nt, state, dt, param_gen)
             result.append(state)
             nt += dt
+        print(f"Cycle ended at: {nt - dt}")
         return nt, np.array(result)
 
 
     @staticmethod
-    def generate_signal_scipy():
-        pass
+    def generate_signal_scipy(
+        fs: float = 360.0,
+        t_range: Tuple[float, float] = (0.0, 60.0),
+        param_gen: AbstractParameterGenerator | None = None,
+    ):
+        if param_gen is None:
+            state = np.array([1.0, 0.0, 0.4])
+            param_gen = NormalParamGen(state)
+
+        ts, te = t_range
+        tlen = te - ts
+        times = np.linspace(ts, te, int(fs * tlen))
+        state = param_gen.last_state
+
+        result = solve_ivp(
+            ECGGenerator._ecg_model,
+            [0, te],
+            state,
+            method="RK45",
+            t_eval=times,
+            args=(param_gen,)
+        )   
+        return times, result
+    
 
     @staticmethod
     def _ecg_model(t: float, xs: NDArray, param_gen: AbstractParameterGenerator):
@@ -55,7 +77,7 @@ class ECGGenerator:
 
         params = param_gen.get_parameters(xs[:2])
         theta, a, b = params.offsets, params.scales, params.widths
-        hr = 60.0 / params.heart_rate
+        hr = params.heart_rate / 60.0
         A, fresp = params.resp_peak, params.resp_freq
 
         alpha = 1.0 - np.sqrt(x * x + y * y)
@@ -66,7 +88,7 @@ class ECGGenerator:
         ) * 2 * np.pi
         # d_theta = (i_theta - theta) % (2*np.pi)
 
-        omega = hr
+        omega = 2 * np.pi * hr
         z0 = A * np.sin(2 * np.pi * fresp * t)
 
         dx = alpha * x - omega * y
@@ -111,7 +133,22 @@ class RK4:
 
 
 if __name__ == "__main__":
-    times, signal = ECGGenerator.generate_signal_custom()
-    print(signal.shape)
-    plt.plot(times, signal[2, :])
+
+    generator = VentricularExtrasystoleParamGen(np.array([1.0, 0.0, 0.4]))
+    # generator = NormalParamGen(np.array([1.0, 0.0, 0.4]))
+
+    # times, signal = ECGGenerator.generate_signal_custom(param_gen=generator)
+    # print(signal.shape)
+    # plt.plot(times, signal[2, :])
+    # plt.show()
+
+    t, result = ECGGenerator.generate_signal_scipy(param_gen=generator)
+
+    plt.figure(figsize=(16, 6))
+    plt.plot(t, result.y[2])
+    plt.title("Generated ECG Signal")
+    plt.title("Generated ECG Signal")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Amplitude")
+    plt.grid()
     plt.show()

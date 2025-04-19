@@ -32,7 +32,7 @@ class AbstractParameterGenerator(ABC):
         a2 = np.atan2(state[1], state[0])
         p_angle = a1 if a1 >= 0 else a1 + 2.0*np.pi
         n_angle = a2 if a2 >= 0 else a2 + 2.0*np.pi
-        return n_angle > p_angle
+        return n_angle > (3.0/2.0) * np.pi > p_angle
 
     @abstractmethod
     def _get_parameters(self, state: NDArray) -> ECGParameters:
