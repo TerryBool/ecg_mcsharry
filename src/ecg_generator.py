@@ -9,7 +9,7 @@ from parameter_generator import AbstractParameterGenerator, NormalParamGen
 class ECGGenerator:
     @staticmethod
     def generate_signal_custom(
-        fs: float = 360.0,
+        fs: float = 500.0,
         t_range: Tuple[float, float] = (0.0, 60.0),
         param_gen: AbstractParameterGenerator | None = None,
         # Scaling needs to be reconsidered
@@ -29,7 +29,7 @@ class ECGGenerator:
             result = np.vstack([result, pulse])
             t = ti
         times = np.linspace(ts, t, result.shape[0])
-        return times, result
+        return times, result.T
 
     # Should be returning time and state (x, y, z)
     @staticmethod
@@ -112,5 +112,6 @@ class RK4:
 
 if __name__ == "__main__":
     times, signal = ECGGenerator.generate_signal_custom()
-    plt.plot(times, signal[3, :])
+    print(signal.shape)
+    plt.plot(times, signal[2, :])
     plt.show()
