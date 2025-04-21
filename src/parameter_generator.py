@@ -61,3 +61,31 @@ class VentricularExtrasystoleParamGen(AbstractParameterGenerator):
         else:
             ps = ParameterFactory.ventricular_extrasystole()
         return ps
+
+class RightBranchBundleBlockGenerator(AbstractParameterGenerator):
+    def __init__(self, initial_state: NDArray, base_heart_rate = 60.0, current_params: str = "Normal") -> None:
+        super().__init__(initial_state, base_heart_rate)
+        self.current_params = current_params
+        self.num_cycles = 0
+
+    @override
+    def _get_parameters(self, state: NDArray) -> ECGParameters:
+        new_cycle = self._is_new_cycle(state)
+        if new_cycle and self.num_cycles == 0:
+            rng = np.random.random()
+            if rng < 0.2:
+                self.current_params = "RightBlock"
+                self.num_cycles = np.random.randint(1, 3)
+            else:
+                self.current_params = "Normal"
+        
+        result = None
+        if self.current_params == "RightBlock":
+            result = ParameterFactory.right_branch_block()
+        else:
+            result = ParameterFactory.normal_signal()
+
+        if new_cycle and self.num_cycles > 0:
+            self.num_cycles -= 1
+
+        return result

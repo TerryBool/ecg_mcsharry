@@ -3,7 +3,7 @@ from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 from typing import Tuple
 from numpy.typing import NDArray
-from parameter_generator import AbstractParameterGenerator, NormalParamGen, VentricularExtrasystoleParamGen
+from parameter_generator import AbstractParameterGenerator, NormalParamGen, RightBranchBundleBlockGenerator, VentricularExtrasystoleParamGen
 
 
 class ECGGenerator:
@@ -41,7 +41,6 @@ class ECGGenerator:
             state = RK4.step(ECGGenerator._ecg_model, nt, state, dt, param_gen)
             result.append(state)
             nt += dt
-        print(f"Cycle ended at: {nt - dt}")
         return nt, np.array(result)
 
 
@@ -64,7 +63,7 @@ class ECGGenerator:
             ECGGenerator._ecg_model,
             [0, te],
             state,
-            method="RK45",
+            method="BDF",
             t_eval=times,
             args=(param_gen,)
         )   
@@ -75,7 +74,7 @@ class ECGGenerator:
     def _ecg_model(t: float, xs: NDArray, param_gen: AbstractParameterGenerator):
         x, y, z = xs
 
-        params = param_gen.get_parameters(xs[:2])
+        params = param_gen.get_parameters(xs)
         theta, a, b = params.offsets, params.scales, params.widths
         hr = params.heart_rate / 60.0
         A, fresp = params.resp_peak, params.resp_freq
@@ -133,8 +132,9 @@ class RK4:
 
 
 if __name__ == "__main__":
+    np.random.seed(329847)
 
-    generator = VentricularExtrasystoleParamGen(np.array([1.0, 0.0, 0.4]))
+    # generator = VentricularExtrasystoleParamGen(np.array([1.0, 0.0, 0.4]))
     # generator = NormalParamGen(np.array([1.0, 0.0, 0.4]))
 
     # times, signal = ECGGenerator.generate_signal_custom(param_gen=generator)
@@ -142,6 +142,9 @@ if __name__ == "__main__":
     # plt.plot(times, signal[2, :])
     # plt.show()
 
+    # generator = NormalParamGen(np.array([1.0, 0.0, 0.4]))
+    # generator = VentricularExtrasystoleParamGen(np.array([1.0, 0.0, 0.4]))
+    generator = RightBranchBundleBlockGenerator(np.array([1.0, 0.0, 0.4]))
     t, result = ECGGenerator.generate_signal_scipy(param_gen=generator)
 
     plt.figure(figsize=(16, 6))
