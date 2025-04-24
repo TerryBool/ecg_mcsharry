@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from typing import Tuple
 from numpy.typing import NDArray
 from parameter_generator import AbstractParameterGenerator, NormalParamGen, RightBranchBundleBlockGenerator, VentricularExtrasystoleParamGen
-
+import time
 
 class ECGGenerator:
     @staticmethod
@@ -134,22 +134,34 @@ class RK4:
 if __name__ == "__main__":
     np.random.seed(329847)
 
-    # generator = VentricularExtrasystoleParamGen(np.array([1.0, 0.0, 0.4]))
-    # generator = NormalParamGen(np.array([1.0, 0.0, 0.4]))
+    # generator = VentricularExtrasystoleParamGen(np.array([1.0, 0.0, 0.04]))
+    # generator = NormalParamGen(np.array([1.0, 0.0, 0.04]))
 
+    # st = time.time()
     # times, signal = ECGGenerator.generate_signal_custom(param_gen=generator)
-    # print(signal.shape)
+    # et = time.time()
+    # print(f"Custom generator time: {et - st:.4f} seconds")
+    # #print(signal.shape)
+
+    # plt.figure(figsize=(16, 6))
     # plt.plot(times, signal[2, :])
+    # plt.title("Generated ECG Signal")
+    # plt.xlabel("Time (s)")
+    # plt.ylabel("Amplitude")
+    # plt.grid()
     # plt.show()
 
-    # generator = NormalParamGen(np.array([1.0, 0.0, 0.4]))
-    # generator = VentricularExtrasystoleParamGen(np.array([1.0, 0.0, 0.4]))
-    generator = RightBranchBundleBlockGenerator(np.array([1.0, 0.0, 0.4]))
+    generator = NormalParamGen(np.array([1.0, 0.0, 0.04]))
+    # generator = VentricularExtrasystoleParamGen(np.array([1.0, 0.0, 0.04]))
+    # generator = RightBranchBundleBlockGenerator(np.array([1.0, 0.0, 0.04]))
+
+    st = time.time()
     t, result = ECGGenerator.generate_signal_scipy(param_gen=generator)
+    et = time.time()
+    print(f"Scipy generator time: {et - st:.4f} seconds")
 
     plt.figure(figsize=(16, 6))
     plt.plot(t, result.y[2])
-    plt.title("Generated ECG Signal")
     plt.title("Generated ECG Signal")
     plt.xlabel("Time (s)")
     plt.ylabel("Amplitude")
