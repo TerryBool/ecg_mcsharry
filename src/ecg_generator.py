@@ -66,8 +66,14 @@ class ECGGenerator:
             method="BDF",
             t_eval=times,
             args=(param_gen,)
-        )   
-        return times, result
+        )
+
+        angles = np.atan2(result.y[1], result.y[0])
+        angles[angles < 0] = angles[angles<0] + 2.0*np.pi
+        sig_end = np.where(np.abs(angles - (3.0/2.0)*np.pi) < 10e-7)[0][-1]
+
+        signals = result.y[:, :sig_end]
+        return times[:sig_end], signals
     
 
     @staticmethod
@@ -161,7 +167,7 @@ if __name__ == "__main__":
     print(f"Scipy generator time: {et - st:.4f} seconds")
 
     plt.figure(figsize=(16, 6))
-    plt.plot(t, result.y[2])
+    plt.plot(t, result[2])
     plt.title("Generated ECG Signal")
     plt.xlabel("Time (s)")
     plt.ylabel("Amplitude")
