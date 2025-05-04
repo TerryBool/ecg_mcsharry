@@ -149,7 +149,8 @@ if __name__ == "__main__":
     plt.grid()
     plt.show()
     
-    theta, a, b, w = ParameterFactory.flutter()
+    params = ParameterFactory.flutter()
+    theta, a, b, w = params.offsets, params.scales, params.widths, params.hr_mult * 2 * np.pi
 
     t, signal, result = generate_ecg(
         fs,
