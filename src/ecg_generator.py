@@ -70,7 +70,8 @@ class ECGGenerator:
 
         angles = np.atan2(result.y[1], result.y[0])
         angles[angles < 0] = angles[angles<0] + 2.0*np.pi
-        sig_end = np.where(np.abs(angles - (3.0/2.0)*np.pi) < 10e-7)[0][-1]
+        passes = np.where(np.abs(angles - (3.0/2.0)*np.pi) < 10e-3)
+        sig_end = passes[0][-1]
 
         signals = result.y[:, :sig_end]
         return times[:sig_end], signals

@@ -10,6 +10,7 @@ You can read our report or [this article](https://lcp.mit.edu/pdf/McSharryTBE03.
 
 - signal_generator.py - Initial implementation, kept for experimentation and as a baseline
 - playground.ipynb - Initial messing around, some changes may have broken parts of it
+- data.py - Used for simpler of reading wfdb records 
 - parameter_factory.py - Contains class which is used to get parameters for different types of signals
 - parameter_generator.py - Contains abstract class and its children for generating parameters during simulation
 - ecg_generator.py - Main file used for generating ECG signal
@@ -20,6 +21,7 @@ You can read our report or [this article](https://lcp.mit.edu/pdf/McSharryTBE03.
 
 ```python
 from ecg_generator import ECGGenerator
+
 t, result = ECGGenerator.generate_signal_scipy(param_gen=generator)
 ```
 
@@ -36,8 +38,8 @@ In order to generate different type of ECG signal you need to provide a paramete
 ```python
 from ecg_generator import ECGGenerator
 from parameter_generator import RightBranchBundleBlockGenerator
-generator = RightBranchBundleBlockGenerator(np.array([1.0, 0.0, 0.04]))
 
+generator = RightBranchBundleBlockGenerator(np.array([1.0, 0.0, 0.04]))
 t, result = ECGGenerator.generate_signal_scipy(param_gen=generator)
 ```
 
